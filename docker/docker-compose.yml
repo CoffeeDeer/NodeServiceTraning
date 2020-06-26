@@ -1,0 +1,29 @@
+version: '2'
+services:
+  node:
+    build:
+      context: .
+      dockerfile: ./node/Dockerfile
+    container_name: node
+    volumes:
+      - ../:/usr/app
+    ports:
+      - "8080:80"
+    stdin_open: true
+    tty: true
+    #restart: always
+  backend:
+    build:
+      context: .
+      dockerfile: ./api-server/Dockerfile
+    container_name: api-server
+    volumes:
+      - ../api-server:/usr/app
+    ports:
+      - "8081:80"
+    stdin_open: true
+    tty: true
+
+
+
+
