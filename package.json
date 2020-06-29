@@ -1,0 +1,16 @@
+{
+    "name": "node-service",
+    "version": "1.0.0",
+    "description": "opencv",
+    "main": "main.js",
+    "dependencies": {
+        "express": "^4.17.1",
+        "pug": "^3.0.0"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "rubi1541",
+    "license": "MIT"
+}
