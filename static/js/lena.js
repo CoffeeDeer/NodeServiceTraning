@@ -513,6 +513,28 @@ LenaJS.sobelVertical = function (pixels) {
     return pixels
 }
 
+LenaJS.sobeldiagonal= function (pixels) {
+    var divider = 4,
+        operator = [2 / divider, 1 / divider, 0,
+            1 / divider, 0, -1 / divider,
+        0, -1 / divider, -2 / divider]
+
+    pixels = LenaJS.convolution(pixels, operator)
+
+    return pixels
+}
+
+LenaJS.adaptiveThresholding = function (pixels) {
+    var count = 0, sum = 0
+    for (var i = 0; i < pixels.data.length; i += 4) {
+        sum += pixels.data[i]
+        count ++
+    }
+    var mean = sum / count
+
+    return LenaJS.thresholding(pixels, mean)
+}
+
 LenaJS.thresholding = function (pixels, args) {
     for (var i = 0; i < pixels.data.length; i += 4) {
         var r = pixels.data[i],
