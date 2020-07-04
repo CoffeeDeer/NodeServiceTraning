@@ -79,6 +79,16 @@ LenaJS.convolution = function (pixels, weights) {
                         var offset = (currentKernelY * canvasWidth + currentKernelX) * 4,
                             weight = weights[kernelY * side + kernelX]
 
+                        //console.log('offset', offset, src[offset],src[offset + 1],src[offset + 2])
+                        sumReds += src[offset] * weight
+                        sumGreens += src[offset + 1] * weight
+                        sumBlues += src[offset + 2] * weight
+                    }
+                    //if boundary case
+                    else{
+                        var weight = weights[kernelY * side + kernelX];
+                        var offset = (y * canvasWidth + x) * 4;
+
                         sumReds += src[offset] * weight
                         sumGreens += src[offset + 1] * weight
                         sumBlues += src[offset + 2] * weight
