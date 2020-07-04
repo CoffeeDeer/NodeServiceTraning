@@ -105,6 +105,51 @@ LenaJS.convolution = function (pixels, weights) {
     return outputData
 }
 
+LenaJS.morphology = function (pixels, minMaxFunction, weights=[0,0,0,0,0,0,0,0,0]) {
+    var side = Math.round(Math.sqrt(weights.length)),
+        halfSide = Math.floor(side / 2),
+        src = pixels.data,
+        canvasWidth = pixels.width,
+        canvasHeight = pixels.height,
+        temporaryCanvas = document.createElement('canvas'),
+        temporaryCtx = temporaryCanvas.getContext('2d'),
+        outputData = temporaryCtx.createImageData(canvasWidth, canvasHeight)
+
+    for (var y = 0; y < canvasHeight; y++) {
+
+        for (var x = 0; x < canvasWidth; x++) {
+
+            var dstOff = (y * canvasWidth + x) * 4;
+            var pixelArray = [];
+
+            for (var kernelY = 0; kernelY < side; kernelY++) {
+                for (var kernelX = 0; kernelX < side; kernelX++) {
+
+                    var currentKernelY = y + kernelY - halfSide,
+                        currentKernelX = x + kernelX - halfSide
+
+                    if (currentKernelY >= 0 &&
+                        currentKernelY < canvasHeight &&
+                        currentKernelX >= 0 &&
+                        currentKernelX < canvasWidth) {
+
+                        var offset = (currentKernelY * canvasWidth + currentKernelX) * 4;
+
+                        pixelArray.push(src[offset])
+                    }
+                }
+            }
+
+            var minMaxVal = minMaxFunction.apply(null, pixelArray)
+            outputData.data[dstOff] = minMaxVal
+            outputData.data[dstOff + 1] = minMaxVal
+            outputData.data[dstOff + 2] = minMaxVal
+            outputData.data[dstOff + 3] = 255
+        }
+    }
+    return outputData
+}
+
 LenaJS.gradient = function (deltaX, deltaY) {
     var srcX = deltaX.data,
         canvasWidth = deltaX.width,
@@ -558,4 +603,16 @@ LenaJS.thresholding = function (pixels, args) {
     }
 
     return pixels
+LenaJS.morphologyOpen = function(pixels) {
+    var result = pixels;
+    result = LenaJS.morphology(result, Math.max);
+    result = LenaJS.morphology(result, Math.min);
+    return result;
+}
+
+LenaJS.morphologyClose = function(pixels) {
+    var result = pixels
+    result = LenaJS.morphology(result, Math.min);
+    result = LenaJS.morphology(result, Math.max);
+    return result;
 }
