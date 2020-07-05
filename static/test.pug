@@ -1,24 +1,34 @@
 doctype html
 head
-	//- script(src="https://docs.opencv.org/3.4/opencv.js")
-	link(rel="stylesheet" href="https://unpkg.com/jcrop/dist/jcrop.css")
-	script(type="text/javascript" src="https://unpkg.com/jcrop")
+	//link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.8.2/css/all.min.css")
+	link(rel="stylesheet" href="css/style.css")
+	link(rel="stylesheet" href="css/basic.css")
+	script(type="text/javascript" src="js/jquery-3.5.1.min.js")
+	script(type="text/javascript" src="js/lena.js")
+	script(type="text/javascript" src="js/plotly-latest.min.js")
 
 body
 	h1 #{title}
 	p.greetings#people #{message}
 
-	img#target(src='img/IMG_2255.png', style=("width: 700px;"))
-	img#target(src='img/1593262874.jpg', style=("width: 700px;"))
-	
-	div#space
-
-	script
-		//-
-			const stage = Jcrop.attach('target');
-			stage.listen('crop.change',(widget,e) => {
-				console.log(widget.pos);
-			});
+	label(for="submitByPicture") 스크린샷 업로드
+		input#submitByPicture(type="file" accept="image/*")
+	div
+		span#submitedPictureArea
+			// full2.png 아레나 결과
+			// full4.png 프레나 결과
+			img#submitedPicture(src='img/full4.png' width='500')
+			//img#submitedPicture(src='img/some2.jpg')
+			//style=('width: 900px;'))
+	div
+		span
+			canvas#canvas.image-canvas()
+	div#myDiv
+	//-           
+		var img = document.getElementById("submitedPicture");
+		var selectorCanvas = document.getElementById("canvas");
+		LenaJS.filterImage(selectorCanvas, LenaJS['grayscale'], img);
+		LenaJS.redrawCanvas(selectorCanvas, LenaJS['highpass']);
 	script.
 		function cropImage(image, croppingCoords) {
 			var cc = croppingCoords;
@@ -26,14 +36,31 @@ body
 			var workCan = document.createElement("canvas"); // create a canvas
 			workCan.width = Math.floor(cc.width);  // set the canvas resolution to the cropped image size
 			workCan.height = Math.floor(cc.height);
-			
+
 			var ctx = workCan.getContext("2d");    // get a 2D rendering interface
-			ctx.drawImage(image, -Math.floor(cc.x), -Math.floor(cc.y)); // draw the image offset to place it correctly on the cropped region
-			
+			ctx.drawImage(image, -Math.floor(cc.x), -Math.floor(cc.y),500,1000); // draw the image offset to place it correctly on the cropped region
+
 			var result = new Image()
 			result.src = workCan.toDataURL();       // set the image source to the canvas as a data URL
-			
+
 			return result;
+		}
+
+		function drawResizedImgaeOnCanvas(image, canvas, width) {
+
+			var width_ratio = width / image.width
+
+			canvas.width = Math.floor(width);  // set the canvas resolution to the cropped image size
+			canvas.height = Math.floor(image.height * width_ratio);
+
+
+			var ctx = canvas.getContext('2d');   // get a 2D rendering interface
+			ctx.drawImage(image, 0, 0, width, canvas.height); // draw the image offset to place it correctly on the cropped region
+
+			//var result = new Image()
+			//result.src = workCan.toDataURL();       // set the image source to the canvas as a data URL
+
+			//return result;
 		}
 
 		var charactersImageList = []
@@ -60,10 +87,194 @@ body
 					charactersImageList.push(result)
 				}
 			}
-
-			document.getElementById('space').appendChild(charactersImageList[92]); 
-
-			//test
+			//document.getElementById('space').appendChild(charactersImageList[92]); 
 		};
+
+		$('#submitByPicture').change(function(e){
+			console.log('file changed')
+			var file = e.target.files[0]
+
+			if (file == undefined) {
+				console.log('but file is empty')
+				return;
+			}
+
+			if(!file.type.match("image/.*")){
+				alert("이미지 확장자만 업로드 가능합니다.");
+				return;
+			};
+
+			var reader = new FileReader();
+			reader.onload = function(e) {
+				$('#submitedPicture').attr('src', e.target.result);
+			};
+			reader.readAsDataURL(file);
+
+			console.log('cccc')
+		});
+
+		//하안색의 비율이 일정 이하면 잘라주는 함수
+		var temp = function(){
+			//console.log(selectorCanvas.height, selectorCanvas.width)
+			for (var i = 0; i < selectorCanvas.width; i++) {
+				var sum = 0
+				var colIndex = i*4;
+				for(var j = 0;j < selectorCanvas.height; j++){
+					var rowIndex = j*4;
+					sum += pixels.data[rowIndex*selectorCanvas.width + colIndex];
+				}
+				
+				// 하얀색의 비율이 
+				console.log(sum / (selectorCanvas.width * 255))
+				var isWhiteOver50percent = (sum / (selectorCanvas.width * 255) < 0.1 ? true : false )
+				
+				if(isWhiteOver50percent){
+					for(var j = 0 ;j < selectorCanvas.height; j++){
+						rowIndex = j*4;
+						pixels.data[rowIndex*selectorCanvas.width + colIndex] = 255
+						pixels.data[rowIndex*selectorCanvas.width + colIndex + 1] = 255
+						pixels.data[rowIndex*selectorCanvas.width + colIndex + 2] = 255
+					}
+				}
+			}
+		}
+
+		//히스토그램을 정규화 관련 함수인가봐 
+		var temp2 = function(){
+			var ctx = selectorCanvas.getContext('2d');
+			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
+			
+			var histogram = LenaJS.histogram(pixels);
+			
+			var maxNonZeroValueIndex = 0;
+			var minNonZeroValueIndex = 255;
+			var sum = 0;
+			histogram.r.forEach(function(element, index){
+				if(element !=0){
+					minNonZeroValueIndex = Math.min(index, minNonZeroValueIndex);
+					maxNonZeroValueIndex = Math.max(index, maxNonZeroValueIndex);
+
+					sum += element;
+				}
+			});
+
+			var zeroedArray = new Array(257).join('0').split('')
+			var new_histogram = zeroedArray.map(Number);
+			
+			var temp = 0
+			histogram.r.forEach(function(element, index){
+				temp += element;
+				new_index = temp/sum*255;
+				new_histogram[index] = parseInt(new_index)
+			});
+		}
+
+		$('#submitedPicture').on("load", function() {
+			console.log('image loaded')
+
+			var img = document.getElementById("submitedPicture");
+			var selectorCanvas = document.getElementById("canvas");
+
+			drawResizedImgaeOnCanvas(img, selectorCanvas, 1080)
+
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['grayscale']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['gaussian']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['thresholding']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['invert']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyOpen']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyOpen']);
+			
+
+
+			var ctx = selectorCanvas.getContext('2d');
+			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
+
+			//연결된 검은점끼리 레이블링 하면서 분류하는 함수
+			var ccc = function(ctx, pixels){
+				var labelsIndex = 0;
+
+				var labels = new Array(selectorCanvas.width * selectorCanvas.height);
+				labels.fill(0)
+
+				for (var row = 0; row < selectorCanvas.width; row++) {
+					for(var col = 0;col < selectorCanvas.height; col++){
+						var offset = (row*selectorCanvas.width + col) * 4 
+						
+						// 픽셀이 검은색일때 
+						if(pixels.data[offset] == 0){
+							// 좌 상 을 확인하여 클래스 레이블이 있으면 해당 레이블 입력
+							if(row != 0){
+								var upOffset = ((row-1)*selectorCanvas.width + col) * 4;
+								labels[offset] = labels[upOffset];
+							}
+							
+							if(col != 0){
+								var leftOffset = (row*selectorCanvas.width + (col-1)) * 4;
+								labels[offset] = labels[leftOffset];
+							}
+
+							//그래도 0 이라면 
+							if(labels[offset] == 0){
+								labelsIndex ++;
+								labels[offset] = labelsIndex;
+							}
+							// 없을경우 신규 레이블 입력
+						}
+					}
+				}
+				console.log(labelsIndex);
+			}
+
+			var ddd = function(ctx, pixels){
+
+				var data1 = []
+				for (var row = 0; row < selectorCanvas.height; row++) {
+					var data2 = []
+					for(var col = 0; col < selectorCanvas.width; col++){
+						var offset = (row*selectorCanvas.width + col) * 4;
+						data2.push(pixels.data[offset]);
+					}
+					data1.push(data2);
+				}
+
+				var data = [{
+					z: data1,
+					type: 'contour'
+				}];
+
+				var layout = {
+				title: 'Basic Contour Plot'
+				}
+
+				Plotly.newPlot('myDiv', data, layout);
+			}
+			
+			
+			//ddd(ctx, pixels);
+			///ctx.putImageData(pixels, 0, 0);
+			
+
+
+			console.log('cccc');
+
+			/*
+			console.log(selectorCanvas.width, selectorCanvas.height)
+			for (var i = 0; i < selectorCanvas.height ; i++) {
+				var temp = []
+				var sum = 0
+				for(var j = 0 ;j < selectorCanvas.width; j++){
+					sum += pixels.data[(i*4)*selectorCanvas.height + (j*4)]
+					temp.push(pixels.data[(i*4)*selectorCanvas.height + (j*4)])
+				}
+				console.log(sum/selectorCanvas.width)
+				//console.log(Math.max.apply(null, temp))
+				//console.log(temp)
+			}
+			//var mean = sum / coun
+			*/
+
+		});
+
+
 
 
