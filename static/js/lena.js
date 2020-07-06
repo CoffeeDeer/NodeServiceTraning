@@ -71,6 +71,8 @@ LenaJS.convolution = function (pixels, weights) {
                     var currentKernelY = y + kernelY - halfSide,
                         currentKernelX = x + kernelX - halfSide
 
+                    //console.log(currentKernelX, currentKernelY)
+
                     if (currentKernelY >= 0 &&
                         currentKernelY < canvasHeight &&
                         currentKernelX >= 0 &&
@@ -597,12 +599,47 @@ LenaJS.thresholding = function (pixels, args) {
             b = pixels.data[i + 2]
 
         var v = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        var thr = args || 128
+        var thr = args || 210
 
         pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = v > thr ? 255 : 0
     }
 
     return pixels
+}
+
+LenaJS.thresholding = function (pixels, args) {
+    for (var i = 0; i < pixels.data.length; i += 4) {
+        var r = pixels.data[i],
+            g = pixels.data[i + 1],
+            b = pixels.data[i + 2]
+
+        var v = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        var thr = args || 200
+
+        pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = v > thr ? 255 : 0
+    }
+
+    return pixels
+}
+
+
+
+LenaJS.custom = function (pixels) {
+    for (var i = 0; i < pixels.data.length; i += 4) {
+        var r = pixels.data[i],
+            g = pixels.data[i + 1],
+            b = pixels.data[i + 2]
+
+        pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = 0.3 * r + 0.59 * g + 0.11 * b
+
+        pixels.data[i] = pixels.data[i] > 240 ? pixels.data[i] : pixels.data[i]; 
+        pixels.data[i + 1] = pixels.data[i + 1] > 245 ? pixels.data[i + 1] : pixels.data[i + 1]; 
+        pixels.data[i + 2] = pixels.data[i + 2] > 245 ? pixels.data[i + 2] : pixels.data[i + 2]; 
+    }
+
+    return pixels
+}
+
 LenaJS.morphologyOpen = function(pixels) {
     var result = pixels;
     result = LenaJS.morphology(result, Math.max);
