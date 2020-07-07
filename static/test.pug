@@ -11,6 +11,8 @@ body
 	h1 #{title}
 	p.greetings#people #{message}
 
+	p#isCVLoad openCV 로딩중.....
+
 	label(for="submitByPicture") 스크린샷 업로드
 		input#submitByPicture(type="file" accept="image/*")
 	div
@@ -23,13 +25,18 @@ body
 	div
 		span
 			canvas#canvas.image-canvas()
-	div#myDiv
+	div
+		span
+			img#canvasOutput
 	//-           
 		var img = document.getElementById("submitedPicture");
 		var selectorCanvas = document.getElementById("canvas");
 		LenaJS.filterImage(selectorCanvas, LenaJS['grayscale'], img);
 		LenaJS.redrawCanvas(selectorCanvas, LenaJS['highpass']);
 	script.
+
+		let iscvLoad = false;
+
 		function cropImage(image, croppingCoords) {
 			var cc = croppingCoords;
 
@@ -113,39 +120,13 @@ body
 			console.log('cccc')
 		});
 
-		//하안색의 비율이 일정 이하면 잘라주는 함수
-		var temp = function(){
-			//console.log(selectorCanvas.height, selectorCanvas.width)
-			for (var i = 0; i < selectorCanvas.width; i++) {
-				var sum = 0
-				var colIndex = i*4;
-				for(var j = 0;j < selectorCanvas.height; j++){
-					var rowIndex = j*4;
-					sum += pixels.data[rowIndex*selectorCanvas.width + colIndex];
-				}
-				
-				// 하얀색의 비율이 
-				console.log(sum / (selectorCanvas.width * 255))
-				var isWhiteOver50percent = (sum / (selectorCanvas.width * 255) < 0.1 ? true : false )
-				
-				if(isWhiteOver50percent){
-					for(var j = 0 ;j < selectorCanvas.height; j++){
-						rowIndex = j*4;
-						pixels.data[rowIndex*selectorCanvas.width + colIndex] = 255
-						pixels.data[rowIndex*selectorCanvas.width + colIndex + 1] = 255
-						pixels.data[rowIndex*selectorCanvas.width + colIndex + 2] = 255
-					}
-				}
-			}
-		}
-
 		//히스토그램을 정규화 관련 함수인가봐 
 		var temp2 = function(){
 			var ctx = selectorCanvas.getContext('2d');
 			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
-			
+
 			var histogram = LenaJS.histogram(pixels);
-			
+
 			var maxNonZeroValueIndex = 0;
 			var minNonZeroValueIndex = 255;
 			var sum = 0;
@@ -160,7 +141,7 @@ body
 
 			var zeroedArray = new Array(257).join('0').split('')
 			var new_histogram = zeroedArray.map(Number);
-			
+
 			var temp = 0
 			histogram.r.forEach(function(element, index){
 				temp += element;
@@ -180,100 +161,47 @@ body
 			LenaJS.redrawCanvas(selectorCanvas, LenaJS['grayscale']);
 			LenaJS.redrawCanvas(selectorCanvas, LenaJS['gaussian']);
 			LenaJS.redrawCanvas(selectorCanvas, LenaJS['thresholding']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['invert']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyOpen']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyOpen']);
-			
+			//LenaJS.redrawCanvas(selectorCanvas, LenaJS['invert']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyClose']);
+			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyClose']);
+
 
 
 			var ctx = selectorCanvas.getContext('2d');
 			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
 
-			//연결된 검은점끼리 레이블링 하면서 분류하는 함수
-			var ccc = function(ctx, pixels){
-				var labelsIndex = 0;
-
-				var labels = new Array(selectorCanvas.width * selectorCanvas.height);
-				labels.fill(0)
-
-				for (var row = 0; row < selectorCanvas.width; row++) {
-					for(var col = 0;col < selectorCanvas.height; col++){
-						var offset = (row*selectorCanvas.width + col) * 4 
-						
-						// 픽셀이 검은색일때 
-						if(pixels.data[offset] == 0){
-							// 좌 상 을 확인하여 클래스 레이블이 있으면 해당 레이블 입력
-							if(row != 0){
-								var upOffset = ((row-1)*selectorCanvas.width + col) * 4;
-								labels[offset] = labels[upOffset];
-							}
-							
-							if(col != 0){
-								var leftOffset = (row*selectorCanvas.width + (col-1)) * 4;
-								labels[offset] = labels[leftOffset];
-							}
-
-							//그래도 0 이라면 
-							if(labels[offset] == 0){
-								labelsIndex ++;
-								labels[offset] = labelsIndex;
-							}
-							// 없을경우 신규 레이블 입력
-						}
-					}
-				}
-				console.log(labelsIndex);
-			}
-
-			var ddd = function(ctx, pixels){
-
-				var data1 = []
-				for (var row = 0; row < selectorCanvas.height; row++) {
-					var data2 = []
-					for(var col = 0; col < selectorCanvas.width; col++){
-						var offset = (row*selectorCanvas.width + col) * 4;
-						data2.push(pixels.data[offset]);
-					}
-					data1.push(data2);
-				}
-
-				var data = [{
-					z: data1,
-					type: 'contour'
-				}];
-
-				var layout = {
-				title: 'Basic Contour Plot'
-				}
-
-				Plotly.newPlot('myDiv', data, layout);
-			}
-			
-			
-			//ddd(ctx, pixels);
-			///ctx.putImageData(pixels, 0, 0);
-			
-
-
-			console.log('cccc');
-
-			/*
-			console.log(selectorCanvas.width, selectorCanvas.height)
-			for (var i = 0; i < selectorCanvas.height ; i++) {
-				var temp = []
-				var sum = 0
-				for(var j = 0 ;j < selectorCanvas.width; j++){
-					sum += pixels.data[(i*4)*selectorCanvas.height + (j*4)]
-					temp.push(pixels.data[(i*4)*selectorCanvas.height + (j*4)])
-				}
-				console.log(sum/selectorCanvas.width)
-				//console.log(Math.max.apply(null, temp))
-				//console.log(temp)
-			}
-			//var mean = sum / coun
-			*/
 
 		});
+
+		function onOpenCvReady() {
+			iscvLoad = true;
+
+			$('#isCVLoad').text('OpenCV.js 로딩 완료.');
+
+			var selectorCanvas = document.getElementById("canvas");
+
+			let src = cv.imread(selectorCanvas);
+
+			let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
+			cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+			cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+			let contours = new cv.MatVector();
+			let hierarchy = new cv.Mat();
+			// You can try more different parameters
+			cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+			// draw contours with random Scalar
+			for (let i = 0; i < contours.size(); ++i) {
+				let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
+					Math.round(Math.random() * 255));
+				cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+			}
+			cv.imshow('canvasOutput', dst);
+			src.delete(); dst.delete(); contours.delete(); hierarchy.delete();
+
+		}
+
+
+	script(async='' src='js/opencv.js' onload='onOpenCvReady();' type='text/javascript')
 
 
 
