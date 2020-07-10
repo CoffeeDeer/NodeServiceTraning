@@ -4,8 +4,8 @@ head
 	link(rel="stylesheet" href="css/style.css")
 	link(rel="stylesheet" href="css/basic.css")
 	script(type="text/javascript" src="js/jquery-3.5.1.min.js")
-	script(type="text/javascript" src="js/lena.js")
 	script(type="text/javascript" src="js/plotly-latest.min.js")
+	script(src='js/opencv.js'  type='text/javascript')
 
 body
 	h1 #{title}
@@ -27,7 +27,7 @@ body
 			canvas#canvas.image-canvas()
 	div
 		span
-			img#canvasOutput
+			canvas#canvasOutput
 	//-           
 		var img = document.getElementById("submitedPicture");
 		var selectorCanvas = document.getElementById("canvas");
@@ -150,6 +150,7 @@ body
 			});
 		}
 
+
 		$('#submitedPicture').on("load", function() {
 			console.log('image loaded')
 
@@ -158,22 +159,25 @@ body
 
 			drawResizedImgaeOnCanvas(img, selectorCanvas, 1080)
 
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['grayscale']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['gaussian']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['thresholding']);
-			//LenaJS.redrawCanvas(selectorCanvas, LenaJS['invert']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyClose']);
-			LenaJS.redrawCanvas(selectorCanvas, LenaJS['morphologyClose']);
+			var ctx = selectorCanvas.getContext('2d');
+			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
+		});
 
+		function temp(){
+			console.log('image loaded')
 
+			var img = document.getElementById("submitedPicture");
+			var selectorCanvas = document.getElementById("canvas");
+
+			drawResizedImgaeOnCanvas(img, selectorCanvas, 1080)
 
 			var ctx = selectorCanvas.getContext('2d');
 			var pixels = ctx.getImageData(0, 0, selectorCanvas.width, selectorCanvas.height);
-
-
-		});
+		}
 
 		function onOpenCvReady() {
+
+			temp();
 			iscvLoad = true;
 
 			$('#isCVLoad').text('OpenCV.js 로딩 완료.');
@@ -182,27 +186,46 @@ body
 
 			let src = cv.imread(selectorCanvas);
 
-			let dst = cv.Mat.zeros(src.cols, src.rows, cv.CV_8UC3);
+			let dst = cv.Mat.zeros(src.rows,src.cols, cv.CV_8UC3);
 			cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-			cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+
+			let ksize = new cv.Size(3, 3);
+			cv.GaussianBlur(src, src, ksize, 0, 0, cv.BORDER_DEFAULT);
+			cv.threshold(src, src, 210, 255, cv.THRESH_BINARY);
 			let contours = new cv.MatVector();
 			let hierarchy = new cv.Mat();
 			// You can try more different parameters
 			cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+			var boundRect = []
 			// draw contours with random Scalar
 			for (let i = 0; i < contours.size(); ++i) {
-				let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255),
+				//var temp = cv.contourArea()
+				console.log()
+				let color = new cv.Scalar(Math.round(Math.random() * 255), Math.round(Math.random() * 255), 
 					Math.round(Math.random() * 255));
-				cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+				//cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+
+				boundRect.push(cv.boundingRect(contours.get(i)));
+
+				//console.log(boundRect);
+				var tl = new cv.Point(boundRect[i].x, boundRect[i].y);
+				var br = new cv.Point(boundRect[i].x + boundRect[i].width,  boundRect[i].y + boundRect[i].height);
+
+				var width = boundRect[i].width;
+				var height = boundRect[i].height; 
+				if(width > 30 && height > 30 && Math.abs(height-width) < 3){
+					console.log(width, height);
+					cv.rectangle( dst, tl, br, color, 2 );
+				}
+				//break;
 			}
 			cv.imshow('canvasOutput', dst);
 			src.delete(); dst.delete(); contours.delete(); hierarchy.delete();
 
 		}
 
-
-	script(async='' src='js/opencv.js' onload='onOpenCvReady();' type='text/javascript')
-
+		setTimeout(onOpenCvReady(),1000);
 
 
-
+	//script(async='' src='js/opencv.js' onload='onOpenCvReady();' type='text/javascript')
